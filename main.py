@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import re #regular expression
 import nltk #natural language Toolkit
+nltk.download('stopwords')
 import string
 import heapq
 
