@@ -13,6 +13,7 @@ import nltk #natural language Toolkit
 # from nltk.corpus import stopwords
 import string
 import heapq
+from fastapi.middleware.cors import CORSMiddleware
 
 def preprocess(text,stopwords):
     formatted_text=text.lower()
@@ -94,6 +95,15 @@ def do_summary(original_text=" "):
 # summary=' '.join(best_sentences)
 
 app = FastAPI()
+
+origins = ['*']
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 models.Base.metadata.create_all(bind=engine)
 
