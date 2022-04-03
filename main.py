@@ -14,6 +14,10 @@ import nltk #natural language Toolkit
 import string
 import heapq
 from fastapi.middleware.cors import CORSMiddleware
+from bnlp import NLTKTokenizer
+from bnlp.corpus import stopwords, punctuations, letters, digits
+
+bnltk = NLTKTokenizer()
 
 def preprocess(text,stopwords):
     formatted_text=text.lower()
@@ -25,7 +29,7 @@ def preprocess(text,stopwords):
     formatted_text=' '.join(element for element in tokens)
     return formatted_text
 
-def do_summary(original_text=" "):
+def do_summary(original_text=" ",size=3):
     original_text=re.sub(r'\s+',' ',original_text)
     stopwords=nltk.corpus.stopwords.words("english")
     print(stopwords)
@@ -45,7 +49,45 @@ def do_summary(original_text=" "):
                 score_sentences[sentence]=word_frequency[word]
             else:
                 score_sentences[sentence] += word_frequency[word]
-    best_sentences=heapq.nlargest(3,score_sentences,key=score_sentences.get)
+    best_sentences=heapq.nlargest(size,score_sentences,key=score_sentences.get)
+    summary=' '.join(best_sentences)
+    return summary
+
+
+# Bilingual summarizer
+def preprocess_bilingual(text,stopword):
+    formatted_text=text.lower()
+    tokens=[]
+    for token in nltk.word_tokenize(formatted_text):
+        tokens.append(token)
+  # print(tokens)
+    tokens=[word for word in tokens if word not in stopword and word not in string.punctuation]
+    formatted_text=' '.join(element for element in tokens)
+    return formatted_text
+
+def do_summary_bilingual(original_text=" ",size=3):
+    original_text=re.sub(r'\s+',' ',original_text)
+    stopword=nltk.corpus.stopwords.words("english")
+    print(stopword)
+    stopwords2=stopwords
+    formatted_text=preprocess_bilingual(original_text,stopword)
+    formatted_text2=preprocess_bilingual(original_text,stopwords2)
+    word_frequency=nltk.FreqDist(nltk.word_tokenize(formatted_text+formatted_text2))
+    highest_frequency=max(word_frequency.values())
+    for word in word_frequency.keys():
+        word_frequency[word]=(word_frequency[word]/highest_frequency)
+    sentence_list=bnltk.sentence_tokenize(original_text)
+
+    score_sentences={}
+    for sentence in sentence_list:
+    # print(sentence)
+        for word in nltk.word_tokenize(sentence.lower()):
+            #print(word)
+            if sentence not in score_sentences.keys():
+                score_sentences[sentence]=word_frequency[word]
+            else:
+                score_sentences[sentence] += word_frequency[word]
+    best_sentences=heapq.nlargest(size,score_sentences,key=score_sentences.get)
     summary=' '.join(best_sentences)
     return summary
     
@@ -180,6 +222,18 @@ def create_user(request: schemas.User,db:Session=Depends(get_db)):
 def create_summary(request:schemas.Summary):
     summary=do_summary(request.text)
     return {"summary":summary}
+
+@app.post("/summaryBangla")
+def create_summary(request:schemas.SummaryMain):
+    summary=do_summary_bilingual(request.text,request.size)
+    return {"summary":summary}
+
+@app.post("/summaryEnglish")
+def create_summary(request:schemas.SummaryMain):
+    summary=do_summary(request.text,request.size)
+    return {"summary":summary}
+
+
 
 if __name__ == "__main__":
   uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -16,3 +16,7 @@ class User(BaseModel):
     
 class Summary(BaseModel):
     text:str 
+    
+class SummaryMain(BaseModel):
+    text:str 
+    size:int
